@@ -36,6 +36,30 @@ point = PointStruct(id=1, vector=vector.tolist(), payload={"document": "Python P
 ```
 The payload is a way to store extra information about the data point that can be useful for filtering or understanding the context of the vector.
 
+### Vector share
+A vector store is used for storing and retrieving high-dimensional vectors.
+
+### Temperature
+```py
+llm = ChatGoogleGenerativeAI(
+            model="gemini-1.5-flash",
+            temperature=0.3
+)
+```
+#### Low Temperature (e.g., 0.1):
+
+* It tends to choose the most probable next token, leading to more predictable and repetitive responses.
+* Useful for tasks requiring precision and reliability.
+
+#### High Temperature (e.g., 0.9):
+
+* It samples from a broader range of possible next tokens, leading to more varied and imaginative responses.
+* Useful for creative writing or generating varied content.
+
+> Default is 0.7
+
+
+
 > __No of dimensions in vector, dot or euclidean product to find similarity, converting a data to vector, all these are decided by `Embedding Model`__
 
 ### Process
@@ -51,7 +75,7 @@ The payload is a way to store extra information about the data point that can be
 # Querying PDF with Qdrant and Gemini APIs
 
 # PDF Querying
-1. Get API Key and URL, load in .env
+1. Get GOOGLE_API_KEY, load in .env
 2. `pip install -r .\requirements.txt`
 3. 
 4. `curl -X POST -F "file=@path/to/pdf" http://localhost:8000/upload-pdf`

@@ -8,34 +8,20 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 import google.generativeai as genai
-
-import dotenv
 from qdrant_client import QdrantClient
 
+# Load environment variables
+import dotenv
 dotenv.load_dotenv()
-# Requirements
-"""
-fastapi
-uvicorn
-langchain
-langchain-community
-langchain-google-genai
-qdrant-client
-google-generativeai
-python-multipart
-PyPDF2
-"""
 
+# Define a service class to handle PDF processing and querying
 class PDFVectorSearchService:
-    def __init__(self, gemini_api_key):
+    def __init__(self, GOOGLE_API_KEY):
         # Configure Gemini API
-        os.environ['GOOGLE_API_KEY'] = gemini_api_key
-        genai.configure(api_key=gemini_api_key)
+        genai.configure(api_key=GOOGLE_API_KEY)
 
-        # Initialize Embeddings
-        self.embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001"
-        )
+        # Create embeddings from Google Generative AI
+        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 
         # Initialize Qdrant Vector Store
         self.qdrant_url = "http://localhost:6333"  # Local Qdrant instance
@@ -66,7 +52,7 @@ class PDFVectorSearchService:
         # Initialize Gemini Model
         llm = ChatGoogleGenerativeAI(
             model="gemini-1.5-flash",
-            temperature=0.3
+            temperature=0.3 # Readme.md
         )
 
         # Custom Prompt Template
@@ -86,10 +72,11 @@ class PDFVectorSearchService:
         )
 
         # Create Retrieval QA Chain
+        # Retriever searches for most similar documents or text 
         retrieval_qa = RetrievalQA.from_chain_type(
             llm=llm,
             chain_type="stuff",
-            retriever=vectorstore.as_retriever(search_kwargs={"k": 3}),
+            retriever=vectorstore.as_retriever(search_kwargs={"k": 3}), # return the top 3 most relevant documents
             chain_type_kwargs={"prompt": PROMPT}
         )
 
@@ -108,7 +95,7 @@ async def upload_pdf(file: UploadFile = File(...)):
 
     # Initialize service
     service = PDFVectorSearchService(
-        gemini_api_key=os.getenv('GOOGLE_API_KEY')
+        GOOGLE_API_KEY=os.getenv('GOOGLE_API_KEY')
     )
 
     # Process PDF and create vector store
@@ -131,7 +118,7 @@ async def query_documents(query: dict):
 
         # Initialize service
         service = PDFVectorSearchService(
-            gemini_api_key=os.getenv('GOOGLE_API_KEY')
+            GOOGLE_API_KEY=os.getenv('GOOGLE_API_KEY')
         )
 
         # Load existing Qdrant vector store
