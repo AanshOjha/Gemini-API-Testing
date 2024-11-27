@@ -8,8 +8,6 @@
 * Way of converting complex data (like words, images, or other forms of content) into vectors. This process is called "embedding" because it embeds the information into a high-dimensional space.
 * A vector database stores these vector embeddings.
 
-# Exploring and Optimizing PDF Vector Storage and Retrieval with Qdrant and Gemini APIs
-
 ## Using Qdrant
 1. Run this in terminal
 ```
@@ -49,6 +47,8 @@ The payload is a way to store extra information about the data point that can be
 * Create a collection in Qdrant.
 * Insert the vectors into this collection.
 * Use the recommended distance metric for querying.
+
+# Querying PDF with Qdrant and Gemini APIs
 
 # PDF Querying
 1. Get API Key and URL, load in .env
