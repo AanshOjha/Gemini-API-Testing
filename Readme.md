@@ -36,8 +36,14 @@ point = PointStruct(id=1, vector=vector.tolist(), payload={"document": "Python P
 ```
 The payload is a way to store extra information about the data point that can be useful for filtering or understanding the context of the vector.
 
-### Vector store
+### Vectorstore
 A vector store is used for storing and retrieving high-dimensional vectors.
+
+### Why FastAPI? 
+* Asynchronous Capabilities: FastAPI supports asynchronous programming, which allows to execute other endpoints while one is being executed. 
+If the application were to be expanded with additional endpoints or background tasks that could be handled concurrently, the use of asynchronous capabilities would become more beneficial.
+* Performance: FastAPI is built on ASGI (Asynchronous Server Gateway Interface), making it faster than Flask, which relies on WSGI (Web Server Gateway Interface). 
+
 
 ### Temperature
 ```py
