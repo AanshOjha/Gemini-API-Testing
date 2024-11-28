@@ -32,7 +32,7 @@ class PDFVectorSearchService:
         # Use Langchain PDF Loader
         loader = PyPDFLoader(file_path)
         
-        # Split documents into chunks
+        # Split documents into chunks to improve retrieval accuracy.
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=200
