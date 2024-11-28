@@ -36,7 +36,7 @@ point = PointStruct(id=1, vector=vector.tolist(), payload={"document": "Python P
 ```
 The payload is a way to store extra information about the data point that can be useful for filtering or understanding the context of the vector.
 
-### Vector share
+### Vector store
 A vector store is used for storing and retrieving high-dimensional vectors.
 
 ### Temperature
