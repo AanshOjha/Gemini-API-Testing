@@ -14,7 +14,7 @@ from qdrant_client import QdrantClient
 import dotenv
 dotenv.load_dotenv()
 
-# Define a service class to handle PDF processing and querying
+# Class to make code modular, organized
 class PDFVectorSearchService:
     def __init__(self, GOOGLE_API_KEY):
         # Configure Gemini API
@@ -27,6 +27,7 @@ class PDFVectorSearchService:
         self.qdrant_url = "http://localhost:6333"  # Local Qdrant instance
         self.collection_name = "pdf_documents"
 
+    # Create vector store from PDF
     def process_pdf(self, file_path):
         # Use Langchain PDF Loader
         loader = PyPDFLoader(file_path)
@@ -38,7 +39,7 @@ class PDFVectorSearchService:
         )
         docs = loader.load_and_split(text_splitter)
 
-        # Create Vector Store
+        # store document embeddings in the Qdrant
         vectorstore = Qdrant.from_documents(
             docs, 
             self.embeddings,
@@ -48,11 +49,12 @@ class PDFVectorSearchService:
 
         return vectorstore
 
+    # 
     def query_documents(self, query, vectorstore):
         # Initialize Gemini Model
         llm = ChatGoogleGenerativeAI(
             model="gemini-1.5-flash",
-            temperature=0.3 # Readme.md
+            temperature=0.3
         )
 
         # Custom Prompt Template
@@ -135,7 +137,7 @@ async def query_documents(query: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Additional configurations can be added here
+# Uvicorn for FastAPI
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
