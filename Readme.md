@@ -82,10 +82,26 @@ llm = ChatGoogleGenerativeAI(
 
 # Querying PDF with Qdrant and Gemini APIs
 
-# PDF Querying
+### PDF Querying
 1. Make sure `Qdrant` is up and running.
+```
+docker run -p 6333:6333 -p 6334:6334 -v ./qdrant_storage:/qdrant/storage:z qdrant/qdrant
+```
 2. Get GOOGLE_API_KEY, load in .env
 3. `pip install -r .\requirements.txt`
 4. `python pdf_query.py`
 5. `curl -X POST -F "file=@path/to/pdf" http://localhost:8000/upload-pdf`
 6. `curl -X POST http://localhost:8000/query -H "Content-Type: application/json" -d '{"query": "what is python known for?"}'`
+
+### Testing with 800+ pages PDF
+![alt text](img/image.png)
+
+
+> For my app, 
+ ```bash
+ curl -X POST -F "file=@C:\Users\itsaa\OneDrive\Desktop\PDF_Vector\data\python.pdf" http://localhost:8000/upload-pdf -w "\nTime taken: %{time_total} seconds\n"
+ ```
+
+ ```bash
+curl -X POST http://localhost:8000/query -H "Content-Type: application/json" -d '{"query": "Tell about python?"}' -w "\nTime taken: %{time_total} seconds\n"
+ ```

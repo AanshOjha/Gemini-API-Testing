@@ -1,6 +1,7 @@
 import os
+import csv
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import Qdrant
@@ -9,13 +10,14 @@ from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 import google.generativeai as genai
 from qdrant_client import QdrantClient
+import dotenv
+from langchain.schema import Document
 
 # Load environment variables
-import dotenv
 dotenv.load_dotenv()
 
 # Class to make code modular, organized
-class PDFVectorSearchService:
+class CSVVectorSearchService:
     def __init__(self, GOOGLE_API_KEY):
         # Configure Gemini API
         genai.configure(api_key=GOOGLE_API_KEY)
@@ -25,46 +27,69 @@ class PDFVectorSearchService:
 
         # Initialize Qdrant Vector Store
         self.qdrant_url = "http://localhost:6333"  # Local Qdrant instance
-        self.collection_name = "pdf_documents"
 
-    # Create vector store from PDF
-    def process_pdf(self, file_path):
-        # Use Langchain PDF Loader
-        loader = PyPDFLoader(file_path)
-        
-        # Split documents into chunks to improve retrieval accuracy.
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200
-        )
-        docs = loader.load_and_split(text_splitter)
+# Create vector store from CSV
+    def process_csv(self, file_path):
+    # Read CSV file with full context preservation
+        with open(file_path, newline='', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
 
-        # store document embeddings in the Qdrant
+            # Create documents that preserve column names and row data
+            docs = []
+            for row in reader:
+                # Create a comprehensive text representation of the row
+                # Include column names and values to maintain context
+                row_text = " ".join([
+                    f"{key}: {value}" for key, value in row.items()
+                ])
+
+                # Create a Document with the full row context
+                doc = Document(
+                    page_content=str(row),
+                    metadata=row  # Store the entire row as metadata
+                )
+                docs.append(doc)
+
+        # # Split documents more carefully
+        # text_splitter = RecursiveCharacterTextSplitter(
+        #     chunk_size=500,  # Smaller chunk size to preserve row context
+        #     chunk_overlap=100
+        # )
+        # split_docs = text_splitter.split_documents(docs)
+
+        # Create a unique collection name
+        global unique_collection_name
+        unique_collection_name = f"csv_documents_{os.path.basename(file_path)}"
+
+        # Store document embeddings in Qdrant
         vectorstore = Qdrant.from_documents(
             docs, 
             self.embeddings,
             url=self.qdrant_url,
-            collection_name=self.collection_name
+            collection_name=unique_collection_name
         )
+
+        print(docs)
 
         return vectorstore
 
-    # 
+
     def query_documents(self, query, vectorstore):
-        # Initialize Gemini Model
+    # Initialize Gemini Model
         llm = ChatGoogleGenerativeAI(
             model="gemini-1.5-flash",
             temperature=0.3
         )
 
-        # Custom Prompt Template
+        # Custom Prompt Template with more context
         prompt_template = """
-        Use the following context to answer the question. 
-        If the answer is not in the context, say "I cannot find the answer in the provided documents."
+        Use the following context to precisely answer the question. 
+        Each context entry contains full row information from the CSV.
+        If the exact answer is not found, explain why.
 
         Context: {context}
         Question: {question}
-        
+
         Helpful Answer:
         """
 
@@ -74,11 +99,15 @@ class PDFVectorSearchService:
         )
 
         # Create Retrieval QA Chain
-        # Retriever searches for most similar documents or text 
         retrieval_qa = RetrievalQA.from_chain_type(
             llm=llm,
             chain_type="stuff",
-            retriever=vectorstore.as_retriever(search_kwargs={"k": 3}), # return the top 3 most relevant documents
+            retriever=vectorstore.as_retriever(
+                search_kwargs={
+                    "k": 5,  # Increase to get more context
+                    "filter": None  # Remove any default filtering
+                }
+            ),
             chain_type_kwargs={"prompt": PROMPT}
         )
 
@@ -89,24 +118,25 @@ class PDFVectorSearchService:
 # FastAPI Application
 app = FastAPI()
 
-@app.post("/upload-pdf")
-async def upload_pdf(file: UploadFile = File(...)):
+@app.post("/upload-csv")
+async def upload_csv(file: UploadFile = File(...)):
     # Save uploaded file temporarily
-    with open(file.filename, "wb") as buffer: # type: ignore
+    filename = str(file.filename)
+    with open(filename, "wb") as buffer:
         buffer.write(await file.read())
 
     # Initialize service
-    service = PDFVectorSearchService(
+    service = CSVVectorSearchService(
         GOOGLE_API_KEY=os.getenv('GOOGLE_API_KEY')
     )
 
-    # Process PDF and create vector store
-    vectorstore = service.process_pdf(file.filename)
+    # Process CSV and create vector store
+    vectorstore = service.process_csv(file.filename)
 
     # Clean up temporary file
-    os.remove(file.filename) # type: ignore
+    os.remove(filename)
 
-    return {"status": "PDF processed and vectorized"}
+    return {"status": "CSV processed and vectorized"}
 
 # Update the query endpoint in main.py
 @app.post("/query")
@@ -119,7 +149,7 @@ async def query_documents(query: dict):
             raise HTTPException(status_code=400, detail="Query text is required")
 
         # Initialize service
-        service = PDFVectorSearchService(
+        service = CSVVectorSearchService(
             GOOGLE_API_KEY=os.getenv('GOOGLE_API_KEY')
         )
 
@@ -127,7 +157,7 @@ async def query_documents(query: dict):
         vectorstore = Qdrant(
             client=QdrantClient(url="http://localhost:6333"), 
             embeddings=service.embeddings,
-            collection_name=service.collection_name
+            collection_name=unique_collection_name
         )
 
         # Query documents 
